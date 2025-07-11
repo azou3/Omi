@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحفيظ القرآن الكريم مع المنشاوي</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Amiri+Quran:wght@400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #00897B; /* Teal Darker */
+            --secondary-color: #546E7A; /* Blue Grey */
+        }
+        body { 
+            font-family: 'Cairo', sans-serif; 
+            color: white;
+            overflow: hidden; /* Prevent scrollbars */
+        }
+        #app-background {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('https://images.pexels.com/photos/1688033/pexels-photo-1688033.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1');
+            background-size: cover;
+            background-position: center;
+            z-index: -2;
+        }
+        .app-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.4); z-index: -1;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* For Safari */
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .button {
+            display: flex; align-items: center; justify-content: center;
+            padding: 12px 20px; font-weight: 700; color: white;
+            border: none; border-radius: 12px; cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .button:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
+        .button:disabled { background-color: #BDBDBD; cursor: not-allowed; transform: none; box-shadow: none; }
+        select, input[type="number"] {
+            appearance: none;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding-left: 20px;
+            padding-right: 20px;
+            text-align: center;
+        }
+        select {
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292%22%20height%3D%22292%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069L146%20208%205%2069z%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat;
+            background-position: left 15px center;
+            background-size: 14px;
+        }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+
+        /* وضع الشاشة الكاملة (Screensaver) */
+        #screensaver-mode {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; z-index: 9999;
+        }
+        #screensaver-mode.active { display: flex; }
+        #screensaver-video {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; z-index: -2;
+        }
+        .screensaver-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5); z-index: -1;
+        }
+        .screensaver-content {
+            display: flex; flex-direction: column; justify-content: space-between;
+            align-items: center; width: 100%; height: 100%; padding: 20px;
+            text-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
+        }
+        #screensaver-clock { font-size: 4rem; font-weight: 700; letter-spacing: 4px; cursor: pointer; }
+        #screensaver-ayah-text {
+            font-family: 'Amiri Quran', serif;
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-align: center;
+            padding: 0 20px;
+            max-width: 90%;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            line-height: 1.6;
+        }
+        #screensaver-ayah-text.visible { opacity: 1; }
+        #screensaver-controls { 
+            display: flex; 
+            gap: 15px; 
+            align-items: center; 
+            background: rgba(0,0,0,0.3);
+            padding: 10px 20px;
+            border-radius: 50px;
+            transition: opacity 0.5s ease-in-out;
+            opacity: 0; /* Hidden by default */
+        }
+        #screensaver-controls.visible {
+            opacity: 1;
+        }
+        .screensaver-btn {
+            background: transparent;
+            border-radius: 50%; width: 60px; height: 60px; font-size: 1.8rem;
+        }
+        #exit-screensaver-btn {
+            position: absolute; top: 20px; right: 20px;
+            background: rgba(0,0,0,0.3); padding: 8px 12px;
+            transition: opacity 0.5s ease-in-out;
+            opacity: 0;
+        }
+        #exit-screensaver-btn.visible {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div id="app-background"></div>
+    <div class="app-overlay"></div>
+
+    <div id="main-app" class="container mx-auto p-4 max-w-lg h-screen overflow-y-auto">
+        
+        <header class="text-center p-4 glass-card rounded-2xl shadow-xl mb-6">
+            <div id="talking-clock" class="cursor-pointer" title="اضغط لسماع الوقت">
+                <div id="clock-display" class="text-5xl font-bold tracking-wider">00:00:00</div>
+                <div class="text-sm mt-1">🔊 اضغط هنا لسماع الوقت</div>
+            </div>
+            <button id="dialect-toggle" class="mt-3 bg-white/20 text-white font-bold py-1 px-4 rounded-full text-xs">
+                التحويل إلى اللهجة الجزائرية
+            </button>
+        </header>
+
+        <main class="glass-card p-6 rounded-2xl shadow-xl space-y-5">
+            <h2 class="text-2xl font-bold text-center border-b-2 pb-3 border-white/20">المصحف المعلم والمرتل للمنشاوي</h2>
+            
+            <div>
+                <label for="reciter-select" class="font-bold text-lg">نوع المصحف:</label>
+                <select id="reciter-select" class="w-full p-3 mt-1 rounded-xl text-lg"></select>
+            </div>
+            
+            <div>
+                <label for="surah-select" class="font-bold text-lg">السورة:</label>
+                <select id="surah-select" class="w-full p-3 mt-1 rounded-xl text-lg"></select>
+            </div>
+
+            <div class="border-t border-white/20 pt-5">
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="text-center">
+                        <label for="start-ayah" class="block text-lg font-semibold mb-2">من الآية</label>
+                        <input type="number" id="start-ayah" value="1" min="1" class="w-full p-2 text-2xl font-bold rounded-xl">
+                    </div>
+                    <div class="text-center">
+                        <label for="end-ayah" class="block text-lg font-semibold mb-2">إلى الآية</label>
+                        <input type="number" id="end-ayah" value="7" min="1" class="w-full p-2 text-2xl font-bold rounded-xl">
+                    </div>
+                    <div class="text-center">
+                        <label for="repeat-count" class="block text-lg font-semibold mb-2">التكرار</label>
+                        <input type="number" id="repeat-count" value="3" min="1" class="w-full p-2 text-2xl font-bold rounded-xl">
+                    </div>
+                </div>
+            </div>
+
+            <div id="status-area" class="text-center p-3 mt-4 bg-black/20 rounded-xl h-20 flex items-center justify-center">
+                <p id="status-text" class="text-lg font-semibold">جاهز للبدء.</p>
+            </div>
+
+            <div class="grid grid-cols-3 gap-4 pt-2">
+                <button id="play-pause-btn" class="button text-xl col-span-3" style="background-color: var(--primary-color);">▶️ بدء الحفظ</button>
+                <button id="stop-btn" class="button text-lg" style="background-color: var(--secondary-color);">⏹️ إيقاف</button>
+                <button id="restart-btn" class="button text-lg" style="background-color: var(--secondary-color);">🔄️ إعادة</button>
+                <button id="screensaver-toggle-btn" class="button text-lg" style="background-color: var(--secondary-color);">🌙 شاشة كاملة</button>
+            </div>
+
+            <audio id="quran-player" class="w-full hidden"></audio>
+        </main>
+
+        <audio id="tts-player" class="hidden"></audio>
+    </div>
+
+    <!-- شاشة وضع الشاشة الكاملة -->
+    <div id="screensaver-mode">
+        <video id="screensaver-video" autoplay loop muted playsinline 
+               poster="https://images.pexels.com/videos/8568931/pexels-photo-8568931.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+               src="https://videos.pexels.com/video-files/8568931/8568931-hd_1920_1080_25fps.mp4">
+        </video>
+        <div class="screensaver-overlay"></div>
+        <div class="screensaver-content">
+            <button id="exit-screensaver-btn" class="button">خروج</button>
+            <div id="screensaver-clock" title="اضغط لسماع الوقت">00:00:00</div>
+            <div id="screensaver-info">اختر سورة للبدء</div>
+            <div id="screensaver-ayah-text"></div>
+            <div id="ss-status-text" class="text-xl mt-4"></div>
+            <div id="screensaver-controls">
+                <button id="ss-prev-btn" class="button screensaver-btn">⏮️</button>
+                <button id="ss-play-pause-btn" class="button screensaver-btn text-4xl">▶️</button>
+                <button id="ss-next-btn" class="button screensaver-btn">⏭️</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- عناصر الواجهة ---
+    const clockDisplay = document.getElementById('clock-display');
+    const talkingClock = document.getElementById('talking-clock');
+    const dialectToggle = document.getElementById('dialect-toggle');
+    const reciterSelect = document.getElementById('reciter-select');
+    const surahSelect = document.getElementById('surah-select');
+    const quranPlayer = document.getElementById('quran-player');
+    const ttsPlayer = document.getElementById('tts-player');
+    const playPauseBtn = document.getElementById('play-pause-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const restartBtn = document.getElementById('restart-btn');
+    const statusText = document.getElementById('status-text');
+    const startAyahInput = document.getElementById('start-ayah');
+    const endAyahInput = document.getElementById('end-ayah');
+    const repeatCountInput = document.getElementById('repeat-count');
+    const screensaverToggleBtn = document.getElementById('screensaver-toggle-btn');
+    const screensaverMode = document.getElementById('screensaver-mode');
+    const screensaverClock = document.getElementById('screensaver-clock');
+    const screensaverInfo = document.getElementById('screensaver-info');
+    const screensaverAyahText = document.getElementById('screensaver-ayah-text');
+    const ssPlayPauseBtn = document.getElementById('ss-play-pause-btn');
+    const ssNextBtn = document.getElementById('ss-next-btn');
+    const ssPrevBtn = document.getElementById('ss-prev-btn');
+    const ssStatusText = document.getElementById('ss-status-text');
+    const exitScreensaverBtn = document.getElementById('exit-screensaver-btn');
+    const screensaverControls = document.getElementById('screensaver-controls');
+
+    // --- بيانات التطبيق ---
+    const reciters = [
+        { name: "المصحف المعلم", identifier: "Minshawy_Teacher_128kbps" },
+        { name: "المصحف المرتل", identifier: "Minshawy_Murattal_128kbps" }
+    ];
+    const surahData = [{"number":1,"name":"الفاتحة","count":7},{"number":2,"name":"البقرة","count":286},{"number":3,"name":"آل عمران","count":200},{"number":4,"name":"النساء","count":176},{"number":5,"name":"المائدة","count":120},{"number":6,"name":"الأنعام","count":165},{"number":7,"name":"الأعراف","count":206},{"number":8,"name":"الأنفال","count":75},{"number":9,"name":"التوبة","count":129},{"number":10,"name":"يونس","count":109},{"number":11,"name":"هود","count":123},{"number":12,"name":"يوسف","count":111},{"number":13,"name":"الرعد","count":43},{"number":14,"name":"ابراهيم","count":52},{"number":15,"name":"الحجر","count":99},{"number":16,"name":"النحل","count":128},{"number":17,"name":"الإسراء","count":111},{"number":18,"name":"الكهف","count":110},{"number":19,"name":"مريم","count":98},{"number":20,"name":"طه","count":135},{"number":21,"name":"الأنبياء","count":112},{"number":22,"name":"الحج","count":78},{"number":23,"name":"المؤمنون","count":118},{"number":24,"name":"النور","count":64},{"number":25,"name":"الفرقان","count":77},{"number":26,"name":"الشعراء","count":227},{"number":27,"name":"النمل","count":93},{"number":28,"name":"القصص","count":88},{"number":29,"name":"العنكبوت","count":69},{"number":30,"name":"الروم","count":60},{"number":31,"name":"لقمان","count":34},{"number":32,"name":"السجدة","count":30},{"number":33,"name":"الأحزاب","count":73},{"number":34,"name":"سبأ","count":54},{"number":35,"name":"فاطر","count":45},{"number":36,"name":"يس","count":83},{"number":37,"name":"الصافات","count":182},{"number":38,"name":"ص","count":88},{"number":39,"name":"الزمر","count":75},{"number":40,"name":"غافر","count":85},{"number":41,"name":"فصلت","count":54},{"number":42,"name":"الشورى","count":53},{"number":43,"name":"الزخرف","count":89},{"number":44,"name":"الدخان","count":59},{"number":45,"name":"الجاثية","count":37},{"number":46,"name":"الأحقاف","count":35},{"number":47,"name":"محمد","count":38},{"number":48,"name":"الفتح","count":29},{"number":49,"name":"الحجرات","count":18},{"number":50,"name":"ق","count":45},{"number":51,"name":"الذاريات","count":60},{"number":52,"name":"الطور","count":49},{"number":53,"name":"النجم","count":62},{"number":54,"name":"القمر","count":55},{"number":55,"name":"الرحمن","count":78},{"number":56,"name":"الواقعة","count":96},{"number":57,"name":"الحديد","count":29},{"number":58,"name":"المجادلة","count":22},{"number":59,"name":"الحشر","count":24},{"number":60,"name":"الممتحنة","count":13},{"number":61,"name":"الصف","count":14},{"number":62,"name":"الجمعة","count":11},{"number":63,"name":"المنافقون","count":11},{"number":64,"name":"التغابن","count":18},{"number":65,"name":"الطلاق","count":12},{"number":66,"name":"التحريم","count":12},{"number":67,"name":"الملك","count":30},{"number":68,"name":"القلم","count":52},{"number":69,"name":"الحاقة","count":52},{"number":70,"name":"المعارج","count":44},{"number":71,"name":"نوح","count":28},{"number":72,"name":"الجن","count":28},{"number":73,"name":"المزمل","count":20},{"number":74,"name":"المدثر","count":56},{"number":75,"name":"القيامة","count":40},{"number":76,"name":"الانسان","count":31},{"number":77,"name":"المرسلات","count":50},{"number":78,"name":"النبأ","count":40},{"number":79,"name":"النازعات","count":46},{"number":80,"name":"عبس","count":42},{"number":81,"name":"التكوير","count":29},{"number":82,"name":"الإنفطار","count":19},{"number":83,"name":"المطففين","count":36},{"number":84,"name":"الإنشقاق","count":25},{"number":85,"name":"البروج","count":22},{"number":86,"name":"الطارق","count":17},{"number":87,"name":"الأعلى","count":19},{"number":88,"name":"الغاشية","count":26},{"number":89,"name":"الفجر","count":30},{"number":90,"name":"البلد","count":20},{"number":91,"name":"الشمس","count":15},{"number":92,"name":"الليل","count":21},{"number":93,"name":"الضحى","count":11},{"number":94,"name":"الشرح","count":8},{"number":95,"name":"التين","count":8},{"number":96,"name":"العلق","count":19},{"number":97,"name":"القدر","count":5},{"number":98,"name":"البينة","count":8},{"number":99,"name":"الزلزلة","count":8},{"number":100,"name":"العاديات","count":11},{"number":101,"name":"القارعة","count":11},{"number":102,"name":"التكاثر","count":8},{"number":103,"name":"العصر","count":3},{"number":104,"name":"الهمزة","count":9},{"number":105,"name":"الفيل","count":5},{"number":106,"name":"قريش","count":4},{"number":107,"name":"الماعون","count":7},{"number":108,"name":"الكوثر","count":3},{"number":109,"name":"الكافرون","count":6},{"number":110,"name":"النصر","count":3},{"number":111,"name":"المسد","count":5},{"number":112,"name":"الإخلاص","count":4},{"number":113,"name":"الفلق","count":5},{"number":114,"name":"الناس","count":6}];
+
+    // --- متغيرات الحالة ---
+    let currentDialect = 'standard';
+    let wakeLock = null;
+    let isPlaying = false;
+    let currentAyah, startAyah, endAyah, totalRepeats, currentRepeat;
+    let controlsTimeout;
+
+    // --- الساعة الناطقة ---
+    const speakWithGoogleTTS = (text) => {
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=ar&client=tw-ob&q=${encodeURIComponent(text)}`;
+        ttsPlayer.src = url;
+        ttsPlayer.play().catch(e => console.error(e));
+    };
+    const updateClock = () => {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('en-US', { hour12: false });
+        clockDisplay.textContent = timeString;
+        screensaverClock.textContent = timeString;
+    };
+    const getTimeAsText = () => {
+        const now = new Date();
+        let h = now.getHours(), m = now.getMinutes();
+        const period = h >= 12 ? 'مساءً' : 'صباحًا';
+        h = h % 12 || 12;
+        if (currentDialect === 'algerian') {
+            const hours_dz = ["لثناش", "الوحدة", "الزوج", "الثلاثة", "الربعة", "الخمسة", "الستة", "السبعة", "الثمنية", "التسعة", "العشرة", "الحداش"];
+            let text = `راهي ${hours_dz[h % 12]}`;
+            if (m === 0) return text + " پيل";
+            if (m === 15) return text + " و ربع";
+            if (m === 30) return text + " و نص";
+            if (m === 45) return `راهي ${hours_dz[(h + 1) % 12]} غير ربع`;
+            return text + ` و ${m} دقيقة`;
+        }
+        const hours_ar = ["الثانية عشرة", "الواحدة", "الثانية", "الثالثة", "الرابعة", "الخامسة", "السادسة", "السبعة", "الثامنة", "التاسعة", "العاشرة", "الحادية عشرة"];
+        let text = `الساعة الآن ${hours_ar[h % 12]}`;
+        if (m === 0) return text + " تمامًا " + period;
+        return text + ` و ${m} دقيقة ` + period;
+    };
+
+    // --- منطق تكرار القرآن ---
+    const playCurrentAyah = async () => {
+        if (!isPlaying) return;
+        
+        const surahNumber = surahSelect.value;
+        const textApiUrl = `https://api.quran.com/api/v4/quran/verses/uthmani?verse_key=${surahNumber}:${currentAyah}`;
+        const readerId = reciterSelect.value;
+        const audioUrl = `https://everyayah.com/data/${readerId}/${String(surahNumber).padStart(3, '0')}${String(currentAyah).padStart(3, '0')}.mp3`;
+        
+        const statusMsg = `التكرار ${currentRepeat}/${totalRepeats} | الآية: ${currentAyah}`;
+        statusText.textContent = statusMsg;
+        ssStatusText.textContent = statusMsg;
+        screensaverAyahText.classList.remove('visible');
+
+        try {
+            // Fetch text first
+            const response = await fetch(textApiUrl);
+            if (!response.ok) throw new Error('Network response for text was not ok.');
+            const data = await response.json();
+            
+            if (data.verses && data.verses.length > 0) {
+                screensaverAyahText.textContent = data.verses[0].text_uthmani;
+                screensaverAyahText.classList.add('visible');
+            } else {
+                throw new Error('API did not return Ayah text.');
+            }
+            
+            // Play audio
+            quranPlayer.src = audioUrl;
+            quranPlayer.play().catch(e => {
+                if (e.name !== 'AbortError') console.error("Playback error:", e);
+                setTimeout(() => { if (isPlaying) playNextInSequence(); }, 500);
+            });
+
+        } catch (error) {
+            console.error("Failed to fetch Ayah text:", error);
+            // Even if text fails, try to play audio
+            quranPlayer.src = audioUrl;
+            quranPlayer.play().catch(e => {
+                if (e.name !== 'AbortError') console.error("Playback error:", e);
+                setTimeout(() => { if (isPlaying) playNextInSequence(); }, 500);
+            });
+        }
+    };
+    const playNextInSequence = () => {
+        if (!isPlaying) return;
+        if (currentAyah < endAyah) {
+            currentAyah++;
+        } else {
+            currentRepeat++;
+            if (currentRepeat > totalRepeats) {
+                stopPlayback();
+                statusText.textContent = 'اكتمل الحفظ بنجاح!';
+                ssStatusText.textContent = 'اكتمل الحفظ!';
+                return;
+            }
+            currentAyah = startAyah;
+        }
+        playCurrentAyah();
+    };
+    const startPlayback = () => {
+        isPlaying = true;
+        playPauseBtn.innerHTML = '⏸️ إيقاف مؤقت';
+        ssPlayPauseBtn.innerHTML = '⏸️';
+        startAyah = parseInt(startAyahInput.value);
+        endAyah = parseInt(endAyahInput.value);
+        totalRepeats = parseInt(repeatCountInput.value);
+        currentAyah = startAyah;
+        currentRepeat = 1;
+        playCurrentAyah();
+        updateMediaSession();
+    };
+    const stopPlayback = () => {
+        isPlaying = false;
+        quranPlayer.pause();
+        quranPlayer.src = '';
+        playPauseBtn.innerHTML = '▶️ بدء الحفظ';
+        ssPlayPauseBtn.innerHTML = '▶️';
+        statusText.textContent = 'تم الإيقاف.';
+        ssStatusText.textContent = 'تم الإيقاف.';
+        screensaverAyahText.classList.remove('visible');
+    };
+    const togglePlayPause = () => {
+        if (isPlaying) {
+            isPlaying = false;
+            quranPlayer.pause();
+            playPauseBtn.innerHTML = '▶️ استئناف';
+            ssPlayPauseBtn.innerHTML = '▶️';
+        } else {
+            if (quranPlayer.src && !quranPlayer.ended) {
+                isPlaying = true;
+                quranPlayer.play();
+                playPauseBtn.innerHTML = '⏸️ إيقاف مؤقت';
+                ssPlayPauseBtn.innerHTML = '⏸️';
+            } else {
+                startPlayback();
+            }
+        }
+    };
+
+    // --- واجهة المستخدم والتحديثات ---
+    const updateAyahLimits = () => {
+        const selectedSurah = surahData.find(s => s.number == surahSelect.value);
+        if (selectedSurah) {
+            startAyahInput.max = selectedSurah.count;
+            endAyahInput.max = selectedSurah.count;
+            endAyahInput.value = selectedSurah.count;
+        }
+    };
+    const updateMediaSession = () => {
+        if ('mediaSession' in navigator) {
+            const reciterName = reciterSelect.options[reciterSelect.selectedIndex].text;
+            const surahName = `سورة ${surahData[surahSelect.selectedIndex].name}`;
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: surahName, artist: `المنشاوي - ${reciterName}`, album: 'تحفيظ القرآن الكريم',
+                artwork: [{ src: 'https://placehold.co/512x512/00897B/ffffff?text=القرآن', sizes: '512x512', type: 'image/png' }]
+            });
+            const infoText = `${surahName} | ${reciterName}`;
+            screensaverInfo.textContent = infoText;
+        }
+    };
+
+    // --- وضع الشاشة الكاملة ---
+    const showScreensaverControls = () => {
+        screensaverControls.classList.add('visible');
+        exitScreensaverBtn.classList.add('visible');
+        clearTimeout(controlsTimeout);
+        controlsTimeout = setTimeout(() => {
+            screensaverControls.classList.remove('visible');
+            exitScreensaverBtn.classList.remove('visible');
+        }, 4000);
+    };
+    const enterScreensaver = async () => {
+        try {
+            await document.documentElement.requestFullscreen();
+        } catch (err) {
+            if (err instanceof TypeError) {
+                alert('وضع ملء الشاشة غير مسموح به في هذه البيئة.');
+            } else {
+                console.error(err);
+            }
+        }
+    };
+    const exitScreensaver = async () => {
+        try {
+            if (document.fullscreenElement) await document.exitFullscreen();
+        } catch (err) { console.error(err); }
+    };
+    document.addEventListener('fullscreenchange', () => {
+        if (document.fullscreenElement) {
+            screensaverMode.classList.add('active');
+            showScreensaverControls();
+            if ('wakeLock' in navigator && !wakeLock) {
+                navigator.wakeLock.request('screen').then(wl => { wakeLock = wl; }).catch(err => console.error(err));
+            }
+        } else {
+            screensaverMode.classList.remove('active');
+            if (wakeLock) wakeLock.release().then(() => wakeLock = null);
+        }
+    });
+
+    // --- ربط الأحداث ---
+    talkingClock.addEventListener('click', () => speakWithGoogleTTS(getTimeAsText()));
+    screensaverClock.addEventListener('click', () => speakWithGoogleTTS(getTimeAsText()));
+    dialectToggle.addEventListener('click', () => {
+        currentDialect = (currentDialect === 'standard') ? 'algerian' : 'standard';
+        dialectToggle.textContent = (currentDialect === 'standard') ? 'التحويل إلى اللهجة الجزائرية' : 'التحويل إلى العربية الفصحى';
+    });
+    playPauseBtn.addEventListener('click', togglePlayPause);
+    stopBtn.addEventListener('click', stopPlayback);
+    restartBtn.addEventListener('click', startPlayback);
+    ssPlayPauseBtn.addEventListener('click', togglePlayPause);
+    ssNextBtn.addEventListener('click', () => {
+        stopPlayback();
+        const newIndex = (surahSelect.selectedIndex + 1) % surahData.length;
+        surahSelect.selectedIndex = newIndex;
+        updateAyahLimits();
+        startPlayback();
+    });
+    ssPrevBtn.addEventListener('click', () => {
+        stopPlayback();
+        const newIndex = (surahSelect.selectedIndex - 1 + surahData.length) % surahData.length;
+        surahSelect.selectedIndex = newIndex;
+        updateAyahLimits();
+        startPlayback();
+    });
+    surahSelect.addEventListener('change', updateAyahLimits);
+    quranPlayer.addEventListener('ended', playNextInSequence);
+    screensaverToggleBtn.addEventListener('click', enterScreensaver);
+    exitScreensaverBtn.addEventListener('click', exitScreensaver);
+    screensaverMode.addEventListener('mousemove', showScreensaverControls);
+    screensaverMode.addEventListener('click', showScreensaverControls);
+
+    // --- إعداد Media Session ---
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.setActionHandler('play', togglePlayPause);
+        navigator.mediaSession.setActionHandler('pause', togglePlayPause);
+    }
+    
+    // --- تهيئة التطبيق ---
+    const init = () => {
+        reciters.forEach(r => reciterSelect.add(new Option(r.name, r.identifier)));
+        surahData.forEach(s => surahSelect.add(new Option(`${s.number}. ${s.name}`, s.number)));
+        updateAyahLimits();
+        setInterval(updateClock, 1000);
+        updateClock();
+    };
+
+    init();
+});
+</script>
+</body>
+</html>
